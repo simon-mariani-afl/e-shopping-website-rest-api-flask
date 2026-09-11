@@ -7,6 +7,8 @@ import os
 import uuid
 
 from models import User, Product, UserRole, db
+from libs.check_auth_required_fields import check_auth_required_fields
+from libs.check_product_required_fields import check_product_required_fields
 
 load_dotenv()
 
@@ -15,7 +17,8 @@ JWT_SECRET = os.getenv("JWT_SECRET")
 app = Flask(__name__)
 
 # Configuration de la base de données
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cart.db'
+# Surchargeable par DATABASE_URI pour que les tests utilisent une base jetable
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URI", 'sqlite:///cart.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialisation de l'extension SQLAlchemy avec notre application
@@ -116,12 +119,11 @@ def admin_required(func):
 @app.route('/api/auth/register', methods=["POST"])
 def register():
     body = request.get_json()
-    if not body or not body.get("email") or not body.get("password"):
-            return jsonify({"error": "l'email et/ou le mot de passe sont manquants"}), 400
+    check_auth_required_fields(body)
 
     user = User.query.filter_by(email=body["email"]).first()
 
-    if user is not None: 
+    if user is not None:
         return jsonify({"error": "cet email est déjà associé à un compte existant"}), 400
 
     new_user = User(email=body.get("email"))
@@ -136,8 +138,7 @@ def register():
 @app.route('/api/auth/login', methods=["POST"])
 def login():
     body = request.get_json()
-    if not body or not body.get("email") or not body.get("password"):
-        return jsonify({"error": "l'email et/ou le mot de passe sont manquants"})
+    check_auth_required_fields(body)
 
     user = User.query.filter_by(email=body["email"]).first()
 
@@ -154,21 +155,20 @@ def list_products():
     products = Product.query.all()
     return jsonify({"products": [p.to_dict() for p in products]}), 200
 
-@app.route('/api/produits/{id}', methods=["GET"])
+@app.route('/api/produits/<uuid:id>', methods=["GET"])
 def get_product(id):
     product = Product.query.filter_by(id=id).first()
 
-    if product is None: 
-        return jsonify({"error": "le produit cherché n'existe pas"})
-    
+    if product is None:
+        return jsonify({"error": "le produit cherché n'existe pas"}), 404
+
     return jsonify({"product": product.to_dict()}), 200
 
 @app.route('/api/produits', methods=["POST"])
 @admin_required
 def create_product():
     body = request.get_json()
-    if not body or not body.get("name") or not body.get("category") or not body.get("price"):
-        return jsonify({"error": "information manquante pour créer le produit"})
+    check_product_required_fields(body)
 
     new_product = Product(
         name=body.get("name"), 
@@ -183,6 +183,37 @@ def create_product():
 
     return jsonify(new_product.to_dict()), 201
 
-# @app.route('/api/produits/{id}', methods=["PUT"])
-# @app.route('/api/produits', methods=["DELETE"])
-    
+@app.route('/api/produits/<uuid:id>', methods=["PUT"])
+@admin_required
+def modify_product(id):
+    body = request.get_json()
+    check_product_required_fields(body)
+
+    product = Product.query.filter_by(id=id).first()
+
+    if product is None:
+        return jsonify({"error": "le produit à modifier n'existe pas"}), 404
+
+    product.name = body.get("name")
+    product.category = body.get("category")
+    product.price = body.get("price")
+    product.stock = body.get("stock", 0)
+    product.description = body.get("description")
+
+    db.session.commit()
+
+    return jsonify({"product": product.to_dict()}), 200
+
+@app.route('/api/produits/<uuid:id>', methods=["DELETE"])
+@admin_required
+def delete_product(id):
+    product = Product.query.filter_by(id=id).first()
+
+    if product is None:
+        return jsonify({"error": "le produit à supprimer n'existe pas"}), 404
+
+    # delete() attend l'objet ORM, pas son identifiant
+    db.session.delete(product)
+    db.session.commit()
+
+    return jsonify({"message": "produit supprimé"}), 200
