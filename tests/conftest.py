@@ -16,8 +16,10 @@ from models import Produit, Utilisateur, UserRole, db
 
 ADMIN_EMAIL = "admin-test@digimarket.fr"
 ADMIN_PASSWORD = "Admin1234!"
+ADMIN_NAME = "Admin"
 CLIENT_EMAIL = "client-test@digimarket.fr"
 CLIENT_PASSWORD = "Client1234!"
+CLIENT_NAME = "Utilisateur"
 
 
 @pytest.fixture
@@ -48,8 +50,8 @@ def client(flask_app):
     return flask_app.test_client()
 
 
-def _create_user(email, password, role):
-    user = Utilisateur(email=email, role=role)
+def _create_user(email, password, role, nom):
+    user = Utilisateur(email=email, nom=nom, role=role)
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
@@ -58,13 +60,13 @@ def _create_user(email, password, role):
 
 @pytest.fixture
 def admin(flask_app):
-    return _create_user(ADMIN_EMAIL, ADMIN_PASSWORD, UserRole.ADMIN)
+    return _create_user(ADMIN_EMAIL, ADMIN_PASSWORD, UserRole.ADMIN, ADMIN_NAME)
 
 
 @pytest.fixture
 def customer(flask_app):
     """Un utilisateur ordinaire, au rôle CLIENT."""
-    return _create_user(CLIENT_EMAIL, CLIENT_PASSWORD, UserRole.CLIENT)
+    return _create_user(CLIENT_EMAIL, CLIENT_PASSWORD, UserRole.CLIENT, CLIENT_NAME)
 
 
 @pytest.fixture
@@ -80,10 +82,10 @@ def customer_headers(customer):
 @pytest.fixture
 def product(flask_app):
     product = Produit(
-        nom="Clavier mécanique",
-        categorie="Périphériques",
-        description="Switches rouges, rétroéclairé",
-        prix=89.99,
+        nom="Clavier",
+        categorie="Informatique",
+        description="un joli clavier",
+        prix=100,
         quantite_stock=25,
     )
     db.session.add(product)

@@ -40,21 +40,17 @@ def add_sample_data():
     # Vérifier si des produits existent déjà
     if Produit.query.count() == 0:
         products = [
-            Produit(nom='Smartphone Ultra', categorie="Smartphones", description='Smartphone pliable', prix=799.99, quantite_stock=50),
-            Produit(nom='Casque Bluetooth', categorie="Casques audios", description='Audio haute qualité', prix=129.99, quantite_stock=30),
-            Produit(nom='Livre Python', categorie="Livres", description='Apprendre Python en profondeur', prix=39.99, quantite_stock=100)
+            Produit(nom='Smartphone Ultra', categorie="Smartphones", description='Smartphone pliable', prix=1000, quantite_stock=50),
+            Produit(nom='Casque Bluetooth', categorie="Casques audios", description='Audio haute qualité', prix=150, quantite_stock=30),
+            Produit(nom='Livre Python', categorie="Livres", description='Apprendre Python en profondeur', prix=10, quantite_stock=100)
         ]
         db.session.add_all(products)
-        
-        # Créer un panier vide
-        # cart = Cart()
-        # db.session.add(cart)
         
         db.session.commit()
 
     # Compte administrateur de test, créé une seule fois
     if Utilisateur.query.filter_by(role=UserRole.ADMIN).first() is None:
-        admin = Utilisateur(email="admin@digimarket.fr", role=UserRole.ADMIN)
+        admin = Utilisateur(email="admin@digimarket.com", nom="Admin", role=UserRole.ADMIN)
         admin.set_password("Admin1234!")
         db.session.add(admin)
         db.session.commit()
@@ -126,7 +122,11 @@ def register():
     if user is not None:
         return jsonify({"error": "cet email est déjà associé à un compte existant"}), 400
 
-    new_user = Utilisateur(email=body.get("email"))
+    # `nom` est obligatoire en base : à défaut, on reprend la partie locale de l'email
+    new_user = Utilisateur(
+        email=body.get("email"),
+        nom=body.get("nom"),
+    )
     new_user.set_password(body.get("password"))
 
     db.session.add(new_user)

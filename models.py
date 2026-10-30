@@ -37,7 +37,11 @@ class Utilisateur(db.Model):
         self.mot_de_passe = generate_password_hash(password)
 
     def to_dict(self):
-        return {"id": self.id, "email": self.email, "role": self.role}
+        return {
+            "id": self.id, 
+            "email": self.email, 
+            "role": self.role
+        }
 
 class Produit(db.Model):
 
@@ -55,7 +59,14 @@ class Produit(db.Model):
         return f'<Produit {self.nom}>'
 
     def to_dict(self):
-        return {"id": self.id, "nom": self.nom, "description": self.description, "categorie": self.categorie, "prix": self.prix, "quantite_stock": self.quantite_stock}
+        return {
+            "id": self.id, 
+            "nom": self.nom, 
+            "description": self.description, 
+            "categorie": self.categorie, 
+            "prix": self.prix, 
+            "quantite_stock": self.quantite_stock
+        }
 
 class Commande(db.Model):
 
@@ -73,9 +84,6 @@ class Commande(db.Model):
     def __repr__(self):
         return f'<Commande {self.id}>'
 
-    def total(self):
-        return round(sum(ligne.quantite * ligne.prix_unitaire for ligne in self.lignecommandes), 2)
-
     def to_dict(self):
         return {
             "id": self.id,
@@ -83,8 +91,7 @@ class Commande(db.Model):
             "date_commande": self.date_commande.isoformat() if self.date_commande else None,
             "adresse_livraison": self.adresse_livraison,
             "statut": self.statut.value,
-            "lignes": [ligne.to_dict() for ligne in self.lignecommandes],
-            "total": self.total(),
+            "détail de la commande": [ligne.to_dict() for ligne in self.lignecommandes],
         }
 
 class LigneCommande(db.Model):
@@ -108,5 +115,4 @@ class LigneCommande(db.Model):
             "produit_id": self.produit_id,
             "quantite": self.quantite,
             "prix_unitaire": self.prix_unitaire,
-            "sous_total": round(self.quantite * self.prix_unitaire, 2),
         }

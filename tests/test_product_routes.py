@@ -1,8 +1,4 @@
-"""Tests des routes produits.
-
-Chaque route protégée est testée trois fois : admin (autorisé), client
-(interdit, 403) et anonyme (non authentifié, 401).
-"""
+#Tests des routes produits
 
 from models import Produit
 
@@ -30,7 +26,7 @@ def test_list_products_renvoie_les_produits(client, product):
 
     assert response.status_code == 200
     produits = response.get_json()["products"]
-    assert [p["nom"] for p in produits] == ["Clavier mécanique"]
+    assert [p["nom"] for p in produits] == ["Clavier"]
 
 
 def test_list_products_est_accessible_sans_token(client, product):
@@ -43,7 +39,7 @@ def test_get_product_renvoie_le_produit(client, product):
     response = client.get(f"/api/produits/{product.id}")
 
     assert response.status_code == 200
-    assert response.get_json()["product"]["nom"] == "Clavier mécanique"
+    assert response.get_json()["product"]["nom"] == "Clavier"
 
 
 def test_get_product_renvoie_404_si_inconnu(client):
@@ -109,7 +105,7 @@ def test_modify_product_par_un_admin(client, admin_headers, product):
 
 
 def test_modify_product_conserve_lidentifiant(client, admin_headers, product):
-    id_avant = str(product.id)
+    id_avant = product.id
 
     response = client.put(
         f"/api/produits/{id_avant}", headers=admin_headers, json=CORPS_VALIDE
@@ -162,14 +158,14 @@ def test_modify_product_refuse_un_client(client, customer_headers, product):
     )
 
     assert response.status_code == 403
-    assert product.nom == "Clavier mécanique"
+    assert product.nom == "Clavier"
 
 
 def test_modify_product_refuse_un_anonyme(client, product):
     response = client.put(f"/api/produits/{product.id}", json=CORPS_VALIDE)
 
     assert response.status_code == 401
-    assert product.nom == "Clavier mécanique"
+    assert product.nom == "Clavier"
 
 
 ## delete_product

@@ -1,7 +1,7 @@
-"""Tests des routes /api/auth/register et /api/auth/login."""
+# Tests des routes /api/auth/register et /api/auth/login
+
 from app import decode_token
 from models import Utilisateur, UserRole
-
 from conftest import CLIENT_EMAIL, CLIENT_PASSWORD
 
 
@@ -9,21 +9,21 @@ from conftest import CLIENT_EMAIL, CLIENT_PASSWORD
 def test_register_cree_un_utilisateur(client, flask_app):
     response = client.post(
         "/api/auth/register",
-        json={"email": "nouveau@digimarket.fr", "password": "Motdepasse1!"},
+        json={"email": "nouveau@digimarket.com", "nom": "Nouveau", "password": "Motdepasse1!"},
     )
 
     assert response.status_code == 201
     corps = response.get_json()
-    assert corps["email"] == "nouveau@digimarket.fr"
+    assert corps["email"] == "nouveau@digimarket.com"
     assert corps["id"]
-    assert Utilisateur.query.filter_by(email="nouveau@digimarket.fr").first() is not None
+    assert Utilisateur.query.filter_by(email="nouveau@digimarket.com").first() is not None
 
 
 def test_register_attribue_le_role_client(client):
-    """Un compte créé publiquement ne doit jamais être administrateur."""
+    """Un compte créé publiquement doit être simple client"""
     response = client.post(
         "/api/auth/register",
-        json={"email": "nouveau@digimarket.fr", "password": "Motdepasse1!"},
+        json={"email": "nouveau@digimarket.com", "nom": "Nouveau", "password": "Motdepasse1!"},
     )
 
     assert response.get_json()["role"] == "client"
@@ -34,20 +34,21 @@ def test_register_ignore_un_role_admin_demande_par_le_client(client, flask_app):
     client.post(
         "/api/auth/register",
         json={
-            "email": "malin@digimarket.fr",
+            "email": "malin@digimarket.com",
+            "nom": "Malin",
             "password": "Motdepasse1!",
             "role": "admin",
         },
     )
 
-    cree = Utilisateur.query.filter_by(email="malin@digimarket.fr").first()
+    cree = Utilisateur.query.filter_by(email="malin@digimarket.com").first()
     assert cree.role == UserRole.CLIENT
 
 
 def test_register_ne_renvoie_pas_le_mot_de_passe(client):
     response = client.post(
         "/api/auth/register",
-        json={"email": "nouveau@digimarket.fr", "password": "Motdepasse1!"},
+        json={"email": "nouveau@digimarket.com", "nom": "Nouveau", "password": "Motdepasse1!"},
     )
 
     assert "password" not in response.get_json()
@@ -57,7 +58,7 @@ def test_register_ne_renvoie_pas_le_mot_de_passe(client):
 def test_register_refuse_un_email_deja_pris(client, customer):
     response = client.post(
         "/api/auth/register",
-        json={"email": CLIENT_EMAIL, "password": "AutreMotdepasse1!"},
+        json={"email": CLIENT_EMAIL, "nom": "Autre", "password": "AutreMotdepasse1!"},
     )
 
     assert response.status_code == 400
@@ -65,7 +66,7 @@ def test_register_refuse_un_email_deja_pris(client, customer):
 
 
 def test_register_refuse_un_corps_incomplet(client):
-    response = client.post("/api/auth/register", json={"email": "a@b.fr"})
+    response = client.post("/api/auth/register", json={"email": "a@b.com"})
 
     assert response.status_code == 400
 
@@ -117,7 +118,7 @@ def test_login_refuse_un_mauvais_mot_de_passe(client, customer):
 def test_login_refuse_un_utilisateur_inconnu(client):
     response = client.post(
         "/api/auth/login",
-        json={"email": "fantome@digimarket.fr", "password": "Motdepasse1!"},
+        json={"email": "fantome@digimarket.com", "password": "Motdepasse1!"},
     )
 
     assert response.status_code == 400
