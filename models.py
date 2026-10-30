@@ -1,7 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-import uuid
 from enum import Enum
 
 # Initialisation de l'extension SQLAlchemy
@@ -12,68 +11,102 @@ class UserRole(str, Enum):
     CLIENT = "client"
     ADMIN = "admin"
 
+class OrderStatus(str, Enum):
+    EN_ATTENTE = "en_attente"
+    VALIDEE = "validee"
+    EXPEDIEE = "expediee"
+    ANNULEE = "annulee"
+
 # Définition des modèles
-class User(db.Model):
-    __tablename__ = 'user'
-    id = db.Column(db.Uuid, primary_key=True, default=uuid.uuid4)
+class Utilisateur(db.Model):
+    __tablename__ = 'utilisateur'
+    id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(255), nullable=False)
+    mot_de_passe = db.Column(db.String(255), nullable=False)
+    nom = db.Column(db.String(255), nullable=False)
     role = db.Column(db.Enum(UserRole), nullable=False, default=UserRole.CLIENT)
+    date_creation = db.Column(db.DateTime, default=datetime.now)
 
     def __repr__(self):
-        return f'<User {self.email}>'
+        return f'<Utilisateur {self.nom}>'
 
     def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+        return check_password_hash(self.mot_de_passe, password)
 
     def set_password(self, password): 
-        self.password_hash = generate_password_hash(password)
+        self.mot_de_passe = generate_password_hash(password)
 
     def to_dict(self):
-        return {"id": str(self.id), "email": self.email, "role": self.role}
+        return {"id": self.id, "email": self.email, "role": self.role}
 
-class Product(db.Model):
+class Produit(db.Model):
 
-    __tablename__ = 'product'
+    __tablename__ = 'produit'
     
-    id = db.Column(db.Uuid, primary_key=True, default=uuid.uuid4)
-    name = db.Column(db.String(100), nullable=False)
+    id = db.Column(db.Integer, primary_key=True)
+    nom = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    category = db.Column(db.String(255), nullable=False)
-    price = db.Column(db.Float, nullable=False)
-    stock = db.Column(db.Integer, default=0)
-    
+    categorie = db.Column(db.String(255), nullable=False)
+    prix = db.Column(db.Float, nullable=False)
+    quantite_stock = db.Column(db.Integer, default=0) 
+    date_creation = db.Column(db.DateTime, default=datetime.now)
+
     def __repr__(self):
-        return f'<Product {self.name}>'
+        return f'<Produit {self.nom}>'
 
     def to_dict(self):
-        return {"id": str(self.id), "name": self.name, "description": self.description, "category": self.category, "price": self.price, "stock": self.stock}
+        return {"id": self.id, "nom": self.nom, "description": self.description, "categorie": self.categorie, "prix": self.prix, "quantite_stock": self.quantite_stock}
 
-# class Cart(db.Model):
-#     __tablename__ = 'carts'
-    
-#     id = db.Column(db.Integer, primary_key=True)
-#     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-#     # Relation avec les éléments du panier
-#     # cascade = 'all, delete-orphans' indique que lorsqu'un panier est dupprimé, tous ses éléments le sont aussi
-#     items = db.relationship('CartItem', backref='cart', lazy=True, cascade='all, delete-orphan')
-    
-#     def __repr__(self):
-#         return f'<Cart {self.id}>'
+class Commande(db.Model):
 
-# class CartItem(db.Model):
-#     __tablename__ = 'cart_items'
-    
-#     id = db.Column(db.Integer, primary_key=True)
-#     cart_id = db.Column(db.Integer, db.ForeignKey('carts.id'), nullable=False)
-#     product_id = db.Column(db.String(10), db.ForeignKey('products.id'), nullable=False)
-#     quantity = db.Column(db.Integer, default=1)
-    
-#     # Relation avec le produit
-#     # backref : vers quelle classe la classe cible va ici pointer
-#     # lazy = True  définit comment les données associées seront chargées - True = différées
-#     product = db.relationship('Product', backref='cart_items')
-    
-#     def __repr__(self):
-#         return f'<CartItem {self.id}, Product: {self.product_id}, Qty: {self.quantity}>'
+    __tablename__ = 'commande'
+
+    id = db.Column(db.Integer, primary_key=True)
+    utilisateur_id = db.Column(db.Integer, db.ForeignKey('utilisateur.id'), nullable=False)
+    date_commande = db.Column(db.DateTime, default=datetime.now)
+    adresse_livraison = db.Column(db.String(255), nullable=False)
+    statut = db.Column(db.Enum(OrderStatus), nullable=False, default=OrderStatus.EN_ATTENTE)
+
+    utilisateur = db.relationship('Utilisateur', backref='commandes')
+    lignecommandes = db.relationship('LigneCommande', backref='commande', lazy=True, cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<Commande {self.id}>'
+
+    def total(self):
+        return round(sum(ligne.quantite * ligne.prix_unitaire for ligne in self.lignecommandes), 2)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "utilisateur_id": self.utilisateur_id,
+            "date_commande": self.date_commande.isoformat() if self.date_commande else None,
+            "adresse_livraison": self.adresse_livraison,
+            "statut": self.statut.value,
+            "lignes": [ligne.to_dict() for ligne in self.lignecommandes],
+            "total": self.total(),
+        }
+
+class LigneCommande(db.Model):
+
+    __tablename__ = 'lignecommande'
+
+    id = db.Column(db.Integer, primary_key=True)
+    commande_id = db.Column(db.Integer, db.ForeignKey('commande.id'), nullable=False)
+    produit_id = db.Column(db.Integer, db.ForeignKey('produit.id'), nullable=False)
+    quantite = db.Column(db.Integer, nullable=False, default=1)
+    prix_unitaire = db.Column(db.Float, nullable=False)
+
+    produit = db.relationship('Produit', backref='lignes_commande')
+
+    def __repr__(self):
+        return f'<LigneCommande {self.id}>'
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "produit_id": self.produit_id,
+            "quantite": self.quantite,
+            "prix_unitaire": self.prix_unitaire,
+            "sous_total": round(self.quantite * self.prix_unitaire, 2),
+        }

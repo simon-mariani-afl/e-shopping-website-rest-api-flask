@@ -1,18 +1,17 @@
 """Tests de generate_token et decode_token."""
-import uuid
 from datetime import datetime, timedelta, timezone
 
 import jwt
 
 import app as app_module
 from app import decode_token, generate_token
-from models import User, UserRole
+from models import Utilisateur, UserRole
 
 
 def _user(role=UserRole.CLIENT):
     """Un utilisateur non persisté : l'id est posé à la main, car la valeur
     par défaut de la colonne ne serait appliquée qu'à l'insertion en base."""
-    user = User(id=uuid.uuid4(), email="jeton@digimarket.fr", role=role)
+    user = Utilisateur(id="22222", email="jeton@digimarket.fr", role=role)
     user.set_password("Motdepasse1!")
     return user
 

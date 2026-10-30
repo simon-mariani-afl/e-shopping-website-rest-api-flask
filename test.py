@@ -1,6 +1,5 @@
 import requests
 import json
-import uuid
 
 BASE_URL = "http://127.0.0.1:5000"
 
@@ -36,11 +35,11 @@ create_admin = requests.post(
     f"{BASE_URL}/api/produits",
     headers={"Authorization": f"Bearer {admin_token}"}, # IL FAUT METTRE LE TOKEN ICI DANS LE HEADER
     json={
-        "name": "Clavier mécanique",
-        "category": "Périphériques",
+        "nom": "Clavier mécanique",
+        "categorie": "Périphériques",
         "description": "Clavier switches rouges, rétroéclairé",
-        "price": 89.99,
-        "stock": 25
+        "prix": 89.99,
+        "quantite_stock": 25
     }
 )
 print_response(create_admin)
@@ -49,9 +48,9 @@ print_response(create_admin)
 assert create_admin.status_code == 201, f"attendu 201, reçu {create_admin.status_code}"
 created = create_admin.json()
 assert created.get("id"), "le produit créé devrait avoir un id"
-assert created["name"] == "Clavier mécanique"
-assert created["price"] == 89.99
-assert created["stock"] == 25
+assert created["nom"] == "Clavier mécanique"
+assert created["prix"] == 89.99
+assert created["quantite_stock"] == 25
 print("OK : l'administrateur peut créer un produit.")
 
 # Le produit doit maintenant apparaître dans la liste
@@ -59,7 +58,7 @@ print("\n--- Vérification dans la liste des produits ---")
 listing = requests.get(f"{BASE_URL}/api/produits")
 print(f"Status: {listing.status_code}")
 if listing.status_code == 200:
-    names = [p["name"] for p in listing.json().get("products", [])]
+    names = [p["nom"] for p in listing.json().get("products", [])]
     assert "Clavier mécanique" in names, "le produit créé est absent de la liste"
     print("OK : le produit est bien présent dans la liste.")
 else:
@@ -73,7 +72,7 @@ if client_token:
     client_create = requests.post(
         f"{BASE_URL}/api/produits",
         headers={"Authorization": f"Bearer {client_token}"},
-        json={"name": "Produit pirate", "category": "Divers", "price": 1.0}
+        json={"nom": "Produit pirate", "categorie": "Divers", "prix": 1.0}
     )
     print(f"Status: {client_create.status_code}")
     assert client_create.status_code == 403, f"attendu 403, reçu {client_create.status_code}"
@@ -90,11 +89,11 @@ update_admin = requests.put(
     product_url,
     headers={"Authorization": f"Bearer {admin_token}"},
     json={
-        "name": "Clavier mécanique sans fil",
-        "category": "Périphériques",
+        "nom": "Clavier mécanique sans fil",
+        "categorie": "Périphériques",
         "description": "Clavier switches rouges, Bluetooth",
-        "price": 109.99,
-        "stock": 12
+        "prix": 109.99,
+        "quantite_stock": 12
     }
 )
 print_response(update_admin)
@@ -102,9 +101,9 @@ print_response(update_admin)
 assert update_admin.status_code == 200, f"attendu 200, reçu {update_admin.status_code}"
 updated = update_admin.json()["product"]
 assert updated["id"] == product_id, "l'id ne doit pas changer lors d'une modification"
-assert updated["name"] == "Clavier mécanique sans fil"
-assert updated["price"] == 109.99
-assert updated["stock"] == 12
+assert updated["nom"] == "Clavier mécanique sans fil"
+assert updated["prix"] == 109.99
+assert updated["quantite_stock"] == 12
 print("OK : l'administrateur peut modifier un produit.")
 
 # La modification doit être persistée : on relit le produit
@@ -112,7 +111,7 @@ print("\n--- Relecture du produit modifié ---")
 reread = requests.get(product_url)
 print_response(reread)
 assert reread.status_code == 200, f"attendu 200, reçu {reread.status_code}"
-assert reread.json()["product"]["name"] == "Clavier mécanique sans fil"
+assert reread.json()["product"]["nom"] == "Clavier mécanique sans fil"
 print("OK : la modification est bien enregistrée en base.")
 
 # PUT = remplacement complet : un champ obligatoire manquant doit être refusé
@@ -120,7 +119,7 @@ print("\n--- Modification avec un champ obligatoire manquant ---")
 update_incomplete = requests.put(
     product_url,
     headers={"Authorization": f"Bearer {admin_token}"},
-    json={"name": "Clavier sans catégorie", "price": 50.0}
+    json={"nom": "Clavier sans catégorie", "prix": 50.0}
 )
 print(f"Status: {update_incomplete.status_code}")
 assert update_incomplete.status_code == 400, f"attendu 400, reçu {update_incomplete.status_code}"
@@ -128,11 +127,11 @@ print("OK : un corps incomplet est bien refusé (400).")
 
 # Un produit inexistant doit renvoyer 404
 print("\n--- Modification d'un produit inexistant ---")
-unknown_url = f"{BASE_URL}/api/produits/{uuid.uuid4()}"
+unknown_url = f"{BASE_URL}/api/produits/99999"
 update_unknown = requests.put(
     unknown_url,
     headers={"Authorization": f"Bearer {admin_token}"},
-    json={"name": "Fantôme", "category": "Divers", "price": 1.0}
+    json={"nom": "Fantôme", "categorie": "Divers", "prix": 1.0}
 )
 print(f"Status: {update_unknown.status_code}")
 assert update_unknown.status_code == 404, f"attendu 404, reçu {update_unknown.status_code}"
@@ -144,7 +143,7 @@ if client_token:
     update_client = requests.put(
         product_url,
         headers={"Authorization": f"Bearer {client_token}"},
-        json={"name": "Pirate", "category": "Divers", "price": 1.0}
+        json={"nom": "Pirate", "categorie": "Divers", "prix": 1.0}
     )
     print(f"Status: {update_client.status_code}")
     assert update_client.status_code == 403, f"attendu 403, reçu {update_client.status_code}"

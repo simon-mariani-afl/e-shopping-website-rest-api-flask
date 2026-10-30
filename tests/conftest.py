@@ -12,7 +12,7 @@ os.environ["DATABASE_URI"] = "sqlite://"
 import pytest
 
 import app as app_module
-from models import Product, User, UserRole, db
+from models import Produit, Utilisateur, UserRole, db
 
 ADMIN_EMAIL = "admin-test@digimarket.fr"
 ADMIN_PASSWORD = "Admin1234!"
@@ -49,7 +49,7 @@ def client(flask_app):
 
 
 def _create_user(email, password, role):
-    user = User(email=email, role=role)
+    user = Utilisateur(email=email, role=role)
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
@@ -79,12 +79,12 @@ def customer_headers(customer):
 
 @pytest.fixture
 def product(flask_app):
-    product = Product(
-        name="Clavier mécanique",
-        category="Périphériques",
+    product = Produit(
+        nom="Clavier mécanique",
+        categorie="Périphériques",
         description="Switches rouges, rétroéclairé",
-        price=89.99,
-        stock=25,
+        prix=89.99,
+        quantite_stock=25,
     )
     db.session.add(product)
     db.session.commit()

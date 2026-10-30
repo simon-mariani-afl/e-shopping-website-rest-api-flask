@@ -1,25 +1,25 @@
-"""Tests des modèles User et Product."""
-from models import Product, User, UserRole, db
+"""Tests des modèles Utilisateur et Produit."""
+from models import Produit, Utilisateur, UserRole, db
 
 
-## User : mot de passe
+## Utilisateur : mot de passe
 def test_set_password_ne_stocke_pas_le_mot_de_passe_en_clair():
-    user = User(email="a@b.fr")
+    user = Utilisateur(email="a@b.fr")
     user.set_password("Motdepasse1!")
 
-    assert user.password_hash is not None
-    assert "Motdepasse1!" not in user.password_hash
+    assert user.mot_de_passe is not None
+    assert "Motdepasse1!" not in user.mot_de_passe
 
 
 def test_check_password_reconnait_le_bon_mot_de_passe():
-    user = User(email="a@b.fr")
+    user = Utilisateur(email="a@b.fr")
     user.set_password("Motdepasse1!")
 
     assert user.check_password("Motdepasse1!") is True
 
 
 def test_check_password_refuse_un_mauvais_mot_de_passe():
-    user = User(email="a@b.fr")
+    user = Utilisateur(email="a@b.fr")
     user.set_password("Motdepasse1!")
 
     assert user.check_password("motdepasse1!") is False
@@ -28,16 +28,16 @@ def test_check_password_refuse_un_mauvais_mot_de_passe():
 
 def test_set_password_produit_un_hash_different_a_chaque_fois():
     """Le sel rend deux hachages du même mot de passe différents."""
-    premier, second = User(email="a@b.fr"), User(email="c@d.fr")
+    premier, second = Utilisateur(email="a@b.fr"), Utilisateur(email="c@d.fr")
     premier.set_password("Motdepasse1!")
     second.set_password("Motdepasse1!")
 
-    assert premier.password_hash != second.password_hash
+    assert premier.mot_de_passe != second.mot_de_passe
 
 
-## User : rôle et sérialisation
+## Utilisateur : rôle et sérialisation
 def test_le_role_par_defaut_est_client(flask_app):
-    user = User(email="defaut@digimarket.fr")
+    user = Utilisateur(email="defaut@digimarket.fr")
     user.set_password("Motdepasse1!")
     db.session.add(user)
     db.session.commit()
@@ -46,12 +46,12 @@ def test_le_role_par_defaut_est_client(flask_app):
 
 
 def test_le_role_admin_est_conserve_en_base(flask_app):
-    user = User(email="chef@digimarket.fr", role=UserRole.ADMIN)
+    user = Utilisateur(email="chef@digimarket.fr", role=UserRole.ADMIN)
     user.set_password("Motdepasse1!")
     db.session.add(user)
     db.session.commit()
 
-    relu = User.query.filter_by(email="chef@digimarket.fr").first()
+    relu = Utilisateur.query.filter_by(email="chef@digimarket.fr").first()
     assert relu.role == UserRole.ADMIN
 
 
@@ -64,18 +64,18 @@ def test_user_to_dict_nexpose_pas_le_hash(flask_app, customer):
 
 
 def test_user_repr_contient_lemail():
-    assert "a@b.fr" in repr(User(email="a@b.fr"))
+    assert "a@b.fr" in repr(Utilisateur(email="a@b.fr"))
 
 
-## Product
+## Produit
 def test_product_to_dict_expose_tous_les_champs(flask_app, product):
     assert product.to_dict() == {
         "id": str(product.id),
-        "name": "Clavier mécanique",
+        "nom": "Clavier mécanique",
         "description": "Switches rouges, rétroéclairé",
-        "category": "Périphériques",
-        "price": 89.99,
-        "stock": 25,
+        "categorie": "Périphériques",
+        "prix": 89.99,
+        "quantite_stock": 25,
     }
 
 
@@ -85,16 +85,16 @@ def test_product_recoit_un_id_a_linsertion(flask_app, product):
 
 
 def test_product_stock_vaut_zero_par_defaut(flask_app):
-    """La colonne stock a un default=0 appliqué à l'insertion."""
-    produit = Product(name="Goodie", category="Divers", price=5.0)
+    """La colonne quantite_stock a un default=0 appliqué à l'insertion."""
+    produit = Produit(nom="Goodie", categorie="Divers", prix=5.0)
     db.session.add(produit)
     db.session.commit()
 
-    assert produit.stock == 0
+    assert produit.quantite_stock == 0
 
 
 def test_product_description_est_optionnelle(flask_app):
-    produit = Product(name="Goodie", category="Divers", price=5.0)
+    produit = Produit(nom="Goodie", categorie="Divers", prix=5.0)
     db.session.add(produit)
     db.session.commit()
 
@@ -102,4 +102,4 @@ def test_product_description_est_optionnelle(flask_app):
 
 
 def test_product_repr_contient_le_nom():
-    assert "Clavier" in repr(Product(name="Clavier", category="Divers", price=1.0))
+    assert "Clavier" in repr(Produit(nom="Clavier", categorie="Divers", prix=1.0))

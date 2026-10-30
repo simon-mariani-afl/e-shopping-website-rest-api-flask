@@ -1,6 +1,6 @@
 """Tests des routes /api/auth/register et /api/auth/login."""
 from app import decode_token
-from models import User, UserRole
+from models import Utilisateur, UserRole
 
 from conftest import CLIENT_EMAIL, CLIENT_PASSWORD
 
@@ -16,7 +16,7 @@ def test_register_cree_un_utilisateur(client, flask_app):
     corps = response.get_json()
     assert corps["email"] == "nouveau@digimarket.fr"
     assert corps["id"]
-    assert User.query.filter_by(email="nouveau@digimarket.fr").first() is not None
+    assert Utilisateur.query.filter_by(email="nouveau@digimarket.fr").first() is not None
 
 
 def test_register_attribue_le_role_client(client):
@@ -40,7 +40,7 @@ def test_register_ignore_un_role_admin_demande_par_le_client(client, flask_app):
         },
     )
 
-    cree = User.query.filter_by(email="malin@digimarket.fr").first()
+    cree = Utilisateur.query.filter_by(email="malin@digimarket.fr").first()
     assert cree.role == UserRole.CLIENT
 
 
@@ -51,7 +51,7 @@ def test_register_ne_renvoie_pas_le_mot_de_passe(client):
     )
 
     assert "password" not in response.get_json()
-    assert "password_hash" not in response.get_json()
+    assert "mot_de_passe" not in response.get_json()
 
 
 def test_register_refuse_un_email_deja_pris(client, customer):

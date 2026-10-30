@@ -3,18 +3,17 @@
 Chaque route protégée est testée trois fois : admin (autorisé), client
 (interdit, 403) et anonyme (non authentifié, 401).
 """
-import uuid
 
-from models import Product
+from models import Produit
 
-ID_INEXISTANT = uuid.uuid4()
+ID_INEXISTANT = "11111"
 
 CORPS_VALIDE = {
-    "name": "Clavier mécanique sans fil",
-    "category": "Périphériques",
+    "nom": "Clavier mécanique sans fil",
+    "categorie": "Périphériques",
     "description": "Switches rouges, Bluetooth",
-    "price": 109.99,
-    "stock": 12,
+    "prix": 109.99,
+    "quantite_stock": 12,
 }
 
 
@@ -31,7 +30,7 @@ def test_list_products_renvoie_les_produits(client, product):
 
     assert response.status_code == 200
     produits = response.get_json()["products"]
-    assert [p["name"] for p in produits] == ["Clavier mécanique"]
+    assert [p["nom"] for p in produits] == ["Clavier mécanique"]
 
 
 def test_list_products_est_accessible_sans_token(client, product):
@@ -44,7 +43,7 @@ def test_get_product_renvoie_le_produit(client, product):
     response = client.get(f"/api/produits/{product.id}")
 
     assert response.status_code == 200
-    assert response.get_json()["product"]["name"] == "Clavier mécanique"
+    assert response.get_json()["product"]["nom"] == "Clavier mécanique"
 
 
 def test_get_product_renvoie_404_si_inconnu(client):
@@ -55,7 +54,7 @@ def test_get_product_renvoie_404_si_inconnu(client):
 
 
 def test_get_product_renvoie_404_si_id_mal_forme(client):
-    """Le convertisseur <uuid:id> rejette ce qui n'est pas un UUID."""
+    """Le convertisseur rejette ce qui n'est pas un Integer."""
     assert client.get("/api/produits/abc").status_code == 404
 
 
@@ -66,10 +65,10 @@ def test_create_product_par_un_admin(client, admin_headers, flask_app):
     assert response.status_code == 201
     corps = response.get_json()
     assert corps["id"]
-    assert corps["name"] == CORPS_VALIDE["name"]
-    assert corps["price"] == 109.99
-    assert corps["stock"] == 12
-    assert Product.query.count() == 1
+    assert corps["nom"] == CORPS_VALIDE["nom"]
+    assert corps["prix"] == 109.99
+    assert corps["quantite_stock"] == 12
+    assert Produit.query.count() == 1
 
 
 def test_create_product_refuse_un_client(client, customer_headers, flask_app):
@@ -77,23 +76,23 @@ def test_create_product_refuse_un_client(client, customer_headers, flask_app):
     response = client.post("/api/produits", headers=customer_headers, json=CORPS_VALIDE)
 
     assert response.status_code == 403
-    assert Product.query.count() == 0
+    assert Produit.query.count() == 0
 
 
 def test_create_product_refuse_un_anonyme(client, flask_app):
     response = client.post("/api/produits", json=CORPS_VALIDE)
 
     assert response.status_code == 401
-    assert Product.query.count() == 0
+    assert Produit.query.count() == 0
 
 
 def test_create_product_refuse_un_corps_incomplet(client, admin_headers, flask_app):
     response = client.post(
-        "/api/produits", headers=admin_headers, json={"name": "Sans catégorie"}
+        "/api/produits", headers=admin_headers, json={"nom": "Sans catégorie"}
     )
 
     assert response.status_code == 400
-    assert Product.query.count() == 0
+    assert Produit.query.count() == 0
 
 
 ## modify_product
@@ -104,9 +103,9 @@ def test_modify_product_par_un_admin(client, admin_headers, product):
 
     assert response.status_code == 200
     modifie = response.get_json()["product"]
-    assert modifie["name"] == CORPS_VALIDE["name"]
-    assert modifie["price"] == 109.99
-    assert modifie["stock"] == 12
+    assert modifie["nom"] == CORPS_VALIDE["nom"]
+    assert modifie["prix"] == 109.99
+    assert modifie["quantite_stock"] == 12
 
 
 def test_modify_product_conserve_lidentifiant(client, admin_headers, product):
@@ -123,7 +122,7 @@ def test_modify_product_enregistre_en_base(client, admin_headers, product):
     client.put(f"/api/produits/{product.id}", headers=admin_headers, json=CORPS_VALIDE)
 
     relu = client.get(f"/api/produits/{product.id}").get_json()["product"]
-    assert relu["name"] == CORPS_VALIDE["name"]
+    assert relu["nom"] == CORPS_VALIDE["nom"]
 
 
 def test_modify_product_remplace_les_champs_absents(client, admin_headers, product):
@@ -131,12 +130,12 @@ def test_modify_product_remplace_les_champs_absents(client, admin_headers, produ
     response = client.put(
         f"/api/produits/{product.id}",
         headers=admin_headers,
-        json={"name": "Clavier nu", "category": "Périphériques", "price": 10.0},
+        json={"nom": "Clavier nu", "categorie": "Périphériques", "prix": 10.0},
     )
 
     modifie = response.get_json()["product"]
     assert modifie["description"] is None
-    assert modifie["stock"] == 0
+    assert modifie["quantite_stock"] == 0
 
 
 def test_modify_product_renvoie_404_si_inconnu(client, admin_headers):
@@ -151,7 +150,7 @@ def test_modify_product_refuse_un_corps_incomplet(client, admin_headers, product
     response = client.put(
         f"/api/produits/{product.id}",
         headers=admin_headers,
-        json={"name": "Clavier sans catégorie", "price": 50.0},
+        json={"nom": "Clavier sans catégorie", "prix": 50.0},
     )
 
     assert response.status_code == 400
@@ -163,14 +162,14 @@ def test_modify_product_refuse_un_client(client, customer_headers, product):
     )
 
     assert response.status_code == 403
-    assert product.name == "Clavier mécanique"
+    assert product.nom == "Clavier mécanique"
 
 
 def test_modify_product_refuse_un_anonyme(client, product):
     response = client.put(f"/api/produits/{product.id}", json=CORPS_VALIDE)
 
     assert response.status_code == 401
-    assert product.name == "Clavier mécanique"
+    assert product.nom == "Clavier mécanique"
 
 
 ## delete_product
@@ -178,7 +177,7 @@ def test_delete_product_par_un_admin(client, admin_headers, product, flask_app):
     response = client.delete(f"/api/produits/{product.id}", headers=admin_headers)
 
     assert response.status_code in (200, 204)
-    assert Product.query.count() == 0
+    assert Produit.query.count() == 0
 
 
 def test_delete_product_rend_le_produit_introuvable(client, admin_headers, product):
@@ -209,11 +208,11 @@ def test_delete_product_refuse_un_client(client, customer_headers, product, flas
     response = client.delete(f"/api/produits/{product.id}", headers=customer_headers)
 
     assert response.status_code == 403
-    assert Product.query.count() == 1
+    assert Produit.query.count() == 1
 
 
 def test_delete_product_refuse_un_anonyme(client, product, flask_app):
     response = client.delete(f"/api/produits/{product.id}")
 
     assert response.status_code == 401
-    assert Product.query.count() == 1
+    assert Produit.query.count() == 1
